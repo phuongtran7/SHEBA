@@ -58,7 +58,7 @@ std::vector<std::string> GetAllPublicRepo(web::http::client::http_client& client
 	}
 	catch (const std::exception & e)
 	{
-		fmt::print("Error exception: {}\n", e.what());
+		fmt::print("Error: {}\n", e.what());
 	}
 }
 
@@ -139,7 +139,7 @@ std::vector<RepoInfo> BuildDatabase(web::http::client::http_client& client, cons
 		}
 		catch (const std::exception & e)
 		{
-			fmt::print("Error exception: {}\n", e.what());
+			fmt::print("Error: {}\n", e.what());
 		}
 	}
 
