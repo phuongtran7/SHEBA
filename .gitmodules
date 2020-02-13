@@ -4,3 +4,9 @@
 [submodule "Library/tabulate"]
 	path = Library/tabulate
 	url = https://github.com/p-ranav/tabulate
+[submodule "Library/toml11"]
+	path = Library/toml11
+	url = https://github.com/ToruNiina/toml11.git
+[submodule "Library/rapidjson"]
+	path = Library/rapidjson
+	url = https://github.com/Tencent/rapidjson.git
