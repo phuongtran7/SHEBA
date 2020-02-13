@@ -1,14 +1,15 @@
 # Near-Future Observation Lens "SHEBA"
 
-`SHEBA` is a simple project that gathers and displays traffic information from user's GitHub account. `SHEBA` uses [cpprestsdk](https://github.com/Microsoft/cpprestsdk), [RapidJSON](https://github.com/Tencent/rapidjson), [tabulate](https://github.com/p-ranav/tabulate) and [toml11](https://github.com/ToruNiina/toml11).
+`SHEBA` is a simple project that gathers and displays traffic information from user's GitHub account. `SHEBA` uses [cpprestsdk](https://github.com/Microsoft/cpprestsdk), [{fmt}](https://github.com/fmtlib/fmt), [RapidJSON](https://github.com/Tencent/rapidjson), [tabulate](https://github.com/p-ranav/tabulate) and [toml11](https://github.com/ToruNiina/toml11).
 
 ## Building
 ### Windows
 
 If you don't want to compile the program by yourself, you can head over the [releases](https://github.com/phuongtran7/SHEBA/releases) tab a get a pre-compiled version.
 
-1. Install cpprestsdk with Microsoft's <a href="https://github.com/Microsoft/vcpkg">vcpkg</a>.
+1. Install cpprestsdk and fmt with Microsoft's <a href="https://github.com/Microsoft/vcpkg">vcpkg</a>.
     * `vcpkg install cpprestsdk:x64-windows`
+    * `vcpkg install fmt:x64-windows`
 2. Clone the project with submodules: `git clone --recurse-submodules https://github.com/phuongtran7/SHEBA.git`.
 3. Build the project.
 

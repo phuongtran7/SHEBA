@@ -54,6 +54,7 @@ std::vector<std::string> GetAllPublicRepo(web::http::client::http_client& client
 
 	try
 	{
+		request_task.wait();
 		return request_task.get();
 	}
 	catch (const std::exception & e)
@@ -83,7 +84,7 @@ std::vector<RepoInfo> BuildDatabase(web::http::client::http_client& client, cons
 		view_request.headers().add(L"Authorization", conversions::to_string_t(formated));
 		view_request.set_request_uri(view_builder.to_string());
 
-		pplx::task<void>request_view_task = client.request(view_request).then([=](http_response response)
+		pplx::task<void>request_view_task = client.request(view_request).then([&](http_response response)
 			{
 				if (response.status_code() != status_codes::OK)
 				{
@@ -111,7 +112,7 @@ std::vector<RepoInfo> BuildDatabase(web::http::client::http_client& client, cons
 		clone_request.headers().add(L"Authorization", conversions::to_string_t(formated));
 		clone_request.set_request_uri(clone_builder.to_string());
 
-		pplx::task<void>request_clone_task = client.request(clone_request).then([=](http_response response)
+		pplx::task<void>request_clone_task = client.request(clone_request).then([&](http_response response)
 			{
 				if (response.status_code() != status_codes::OK)
 				{
