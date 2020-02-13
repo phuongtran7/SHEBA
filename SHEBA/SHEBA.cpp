@@ -3,6 +3,7 @@
 #include "rapidjson/document.h"
 #include <tabulate/table.hpp>
 #include <concurrent_unordered_map.h>
+#include <toml.hpp>
 
 using namespace utility;
 using namespace web;
@@ -61,7 +62,7 @@ std::vector<std::string> GetAllPublicRepo(web::http::client::http_client& client
 			}
 }
 
-std::vector<RepoInfo> BuildDatabase(web::http::client::http_client& client, const std::string& user, const std::vector<std::string>& input) {
+std::vector<RepoInfo> BuildDatabase(web::http::client::http_client& client, const std::string& user, const std::string& token, const std::vector<std::string>& input) {
 
 	struct count {
 		int count;
@@ -77,11 +78,16 @@ std::vector<RepoInfo> BuildDatabase(web::http::client::http_client& client, cons
 		web::uri_builder view_builder;
 		view_builder.set_path(utility::conversions::to_string_t(fmt::format("/repos/{}/{}/traffic/views", user, repo)));
 
-		pplx::task<void>request_view_task = client.request(methods::GET, view_builder.to_string()).then([=](http_response response)
+		http_request view_request(methods::GET);
+		auto formated = fmt::format("Token {}", token);
+		view_request.headers().add(L"Authorization", conversions::to_string_t(formated));
+		view_request.set_request_uri(view_builder.to_string());
+
+		pplx::task<void>request_view_task = client.request(view_request).then([=](http_response response)
 			{
 				if (response.status_code() != status_codes::OK)
 				{
-					fmt::print("Received response status code from get view querry: {}.", response.status_code());
+					fmt::print("Received response status code from get view querry: {}.\n", response.status_code());
 					throw;
 				}
 
@@ -101,11 +107,15 @@ std::vector<RepoInfo> BuildDatabase(web::http::client::http_client& client, cons
 		web::uri_builder clone_builder;
 		clone_builder.set_path(utility::conversions::to_string_t(fmt::format("/repos/{}/{}/traffic/clones", user, repo)));
 
-		pplx::task<void>request_clone_task = client.request(methods::GET, clone_builder.to_string()).then([=](http_response response)
+		http_request clone_request(methods::GET);
+		clone_request.headers().add(L"Authorization", conversions::to_string_t(formated));
+		clone_request.set_request_uri(clone_builder.to_string());
+
+		pplx::task<void>request_clone_task = client.request(clone_request).then([=](http_response response)
 			{
 				if (response.status_code() != status_codes::OK)
 				{
-					fmt::print("Received response status code from get clone querry: {}.", response.status_code());
+					fmt::print("Received response status code from get clone querry: {}.\n", response.status_code());
 					throw;
 				}
 
@@ -138,14 +148,15 @@ std::vector<RepoInfo> BuildDatabase(web::http::client::http_client& client, cons
 
 int main()
 {
+	const auto data = toml::parse("Secrets.toml");
+	std::string user = toml::find<std::string>(data, "User");
+	std::string token = toml::find<std::string>(data, "Token");
+
 	web::http::client::http_client client_(U("https://api.github.com/"));
-
-
-	std::string user = "phuongtran7";
 
 	auto repos = GetAllPublicRepo(client_, user);
 
-	auto database = BuildDatabase(client_, user, repos);
+	auto database = BuildDatabase(client_, user, token, repos);
 
 	std::getchar();
 }
