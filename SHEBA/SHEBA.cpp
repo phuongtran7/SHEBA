@@ -139,7 +139,7 @@ std::vector<RepoInfo> BuildDatabase(web::http::client::http_client& client, cons
 	std::vector<RepoInfo> return_val{};
 	for (auto& repo : input) {
 		auto view = views.find(repo)->second;
-		auto clone = views.find(repo)->second;
+		auto clone = clones.find(repo)->second;
 		return_val.emplace_back(RepoInfo{repo, view.count, view.unique, clone.count, clone.unique});
 	}
 
