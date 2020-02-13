@@ -52,14 +52,14 @@ std::vector<std::string> GetAllPublicRepo(web::http::client::http_client& client
 				return repos;
 			});
 
-			try
-			{
-				return request_task.get();
-			}
-			catch (const std::exception & e)
-			{
-				fmt::print("Error exception: {}", e.what());
-			}
+	try
+	{
+		return request_task.get();
+	}
+	catch (const std::exception & e)
+	{
+		fmt::print("Error exception: {}\n", e.what());
+	}
 }
 
 std::vector<RepoInfo> BuildDatabase(web::http::client::http_client& client, const std::string& user, const std::string& token, const std::vector<std::string>& input) {
@@ -133,7 +133,14 @@ std::vector<RepoInfo> BuildDatabase(web::http::client::http_client& client, cons
 	}
 
 	for (auto& task : result) {
-		task.get();
+		try
+		{
+			task.wait();
+		}
+		catch (const std::exception & e)
+		{
+			fmt::print("Error exception: {}\n", e.what());
+		}
 	}
 
 	std::vector<RepoInfo> return_val{};
@@ -144,6 +151,31 @@ std::vector<RepoInfo> BuildDatabase(web::http::client::http_client& client, cons
 	}
 
 	return return_val;
+}
+
+void DrawTable(const std::vector<RepoInfo>& input) {
+	using namespace tabulate;
+	Table data;
+	data.add_row({ "Name", "Views", "Unique Views", "Clones", "Unique Clones" });
+
+	for (auto& repo : input) {
+		data.add_row({ repo.name, std::to_string(repo.views), std::to_string(repo.UniqueViews), std::to_string(repo.clones), std::to_string(repo.uniqueClones) });
+	}
+
+	// Center-align and color header cells
+	for (auto i = 0; i < 5; ++i) {
+		data[0][i].format()
+			.font_color(Color::cyan)
+			.font_align(FontAlign::center)
+			.font_style({ FontStyle::bold });
+	}
+
+	// Center-align all collumns
+	for (auto i = 0; i < 5; ++i) {
+		data.column(i).format().font_align(FontAlign::center);
+	}
+
+	std::cout << data << std::endl;
 }
 
 int main()
@@ -157,6 +189,8 @@ int main()
 	auto repos = GetAllPublicRepo(client_, user);
 
 	auto database = BuildDatabase(client_, user, token, repos);
+
+	DrawTable(database);
 
 	std::getchar();
 }
