@@ -1,0 +1,6 @@
+[submodule "Library/indicators"]
+	path = Library/indicators
+	url = https://github.com/p-ranav/indicators.git
+[submodule "Library/tabulate"]
+	path = Library/tabulate
+	url = https://github.com/p-ranav/tabulate
