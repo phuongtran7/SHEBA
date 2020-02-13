@@ -1,5 +1,4 @@
-# SHEBA
-<h4 align="center">Near-Future Observation Lens "SHEBA"</h4>
+# Near-Future Observation Lens "SHEBA"
 
 `SHEBA` is a simple project that gathers and display traffic information from user's GitHub account. `SHEBA` uses [cpprestsdk](https://github.com/Microsoft/cpprestsdk), [RapidJSON](https://github.com/Tencent/rapidjson), [tabulate](https://github.com/p-ranav/tabulate) and [toml11](https://github.com/ToruNiina/toml11).
 
