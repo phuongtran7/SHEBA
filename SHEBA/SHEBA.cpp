@@ -40,7 +40,7 @@ std::vector<std::string> GetAllPublicRepo(web::http::client::http_client& client
 				rapidjson::Document document;
 				document.Parse(json_data.c_str());
 
-				std::vector<std::string> repos;
+				std::vector<std::string> repos{};
 
 				// Only get the repo that is not a fork
 				for (const auto& object : document.GetArray()) {
@@ -60,12 +60,17 @@ std::vector<std::string> GetAllPublicRepo(web::http::client::http_client& client
 	{
 		fmt::print("Error: {}\n", e.what());
 	}
+	return std::vector<std::string>{};
 }
 
 std::vector<RepoInfo> BuildDatabase(web::http::client::http_client& client, const std::string& user, const std::string& token, const std::vector<std::string>& input) {
 	using namespace utility;
 	using namespace web;
 	using namespace http;
+
+	if (input.empty()) {
+		return std::vector<RepoInfo>{};
+	}
 
 	struct count {
 		int count;
@@ -167,6 +172,11 @@ std::vector<RepoInfo> BuildDatabase(web::http::client::http_client& client, cons
 
 void DrawTable(const std::vector<RepoInfo>& input) {
 	using namespace tabulate;
+
+	if (input.empty()) {
+		return;
+	}
+
 	Table data;
 	data.add_row({ "Name", "Views", "Unique Views", "Clones", "Unique Clones" });
 
