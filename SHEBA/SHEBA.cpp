@@ -5,12 +5,7 @@
 #include <concurrent_unordered_map.h>
 #include "toml.hpp"
 
-using namespace utility;
-using namespace web;
-using namespace http;
-using namespace client;
-using namespace concurrency::streams;
-
+// Struct to represent each repo and its information
 struct RepoInfo {
 	std::string name;
 	int clones;
@@ -19,10 +14,15 @@ struct RepoInfo {
 	int UniqueViews;
 };
 
+// We don't need the token here as we only care about public repo information anyway.
 std::vector<std::string> GetAllPublicRepo(web::http::client::http_client& client, const std::string& user) {
+	using namespace utility;
+	using namespace web;
+	using namespace http;
+
 	// Build request URI and start the request.
 	web::uri_builder builder;
-	builder.set_path(utility::conversions::to_string_t(fmt::format("/users/{}/repos", user)));
+	builder.set_path(conversions::to_string_t(fmt::format("/users/{}/repos", user)));
 
 	pplx::task<std::vector<std::string>> request_task = client.request(methods::GET, builder.to_string())
 		.then([&](http_response response)
@@ -63,27 +63,35 @@ std::vector<std::string> GetAllPublicRepo(web::http::client::http_client& client
 }
 
 std::vector<RepoInfo> BuildDatabase(web::http::client::http_client& client, const std::string& user, const std::string& token, const std::vector<std::string>& input) {
+	using namespace utility;
+	using namespace web;
+	using namespace http;
 
 	struct count {
 		int count;
 		int unique;
 	};
 
+	// Store the result that got back from the REST requsests
 	Concurrency::concurrent_unordered_map<std::string, count> views{};
 	Concurrency::concurrent_unordered_map<std::string, count> clones{};
 
+	// Store all the task so that we can call wait on them later.
 	std::vector<pplx::task<void>> result{};
 
 	auto formated_token_string = fmt::format("Token {}", token);
 
+	// Loop through all our public repo names.
 	for (auto& repo : input) {
 		web::uri_builder view_builder;
-		view_builder.set_path(utility::conversions::to_string_t(fmt::format("/repos/{}/{}/traffic/views", user, repo)));
+		view_builder.set_path(conversions::to_string_t(fmt::format("/repos/{}/{}/traffic/views", user, repo)));
 
+		// Manually craft authentication header to use with GitHub token
 		http_request view_request(methods::GET);
 		view_request.headers().add(L"Authorization", conversions::to_string_t(formated_token_string));
 		view_request.set_request_uri(view_builder.to_string());
 
+		// Spawn a task to request the view count
 		pplx::task<void>request_view_task = client.request(view_request).then([&](http_response response)
 			{
 				if (response.status_code() != status_codes::OK)
@@ -99,18 +107,20 @@ std::vector<RepoInfo> BuildDatabase(web::http::client::http_client& client, cons
 					rapidjson::Document document;
 					document.Parse(json_data.c_str());
 					count temp{ document["count"].GetInt(), document["uniques"].GetInt() };
+					// Put the view count into the concurrent map
 					views.insert(std::make_pair(repo, temp));
 				});
 
+		// Store the task into the vector
 		result.push_back(std::move(request_view_task));
 
 		web::uri_builder clone_builder;
-		clone_builder.set_path(utility::conversions::to_string_t(fmt::format("/repos/{}/{}/traffic/clones", user, repo)));
-
+		clone_builder.set_path(conversions::to_string_t(fmt::format("/repos/{}/{}/traffic/clones", user, repo)));
 		http_request clone_request(methods::GET);
 		clone_request.headers().add(L"Authorization", conversions::to_string_t(formated_token_string));
 		clone_request.set_request_uri(clone_builder.to_string());
 
+		// Spawn another task for the same repo to request the clone count
 		pplx::task<void>request_clone_task = client.request(clone_request).then([&](http_response response)
 			{
 				if (response.status_code() != status_codes::OK)
@@ -132,6 +142,7 @@ std::vector<RepoInfo> BuildDatabase(web::http::client::http_client& client, cons
 		result.push_back(std::move(request_clone_task));
 	}
 
+	// Wait for all task to complete
 	for (auto& task : result) {
 		try
 		{
@@ -143,6 +154,7 @@ std::vector<RepoInfo> BuildDatabase(web::http::client::http_client& client, cons
 		}
 	}
 
+	// Create the vector that contain all the information for all the available repos
 	std::vector<RepoInfo> return_val{};
 	for (auto& repo : input) {
 		auto view = views.find(repo)->second;
