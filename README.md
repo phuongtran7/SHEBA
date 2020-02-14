@@ -22,8 +22,8 @@ Token = "Personal token"
 ```
 and then put it next to the compiled executable.
 
-4. Start the executable.
+3. Start the executable.
 
 ## Result
 
-![](../master/Image/SHEBA.JPG)
+![](/Image/SHEBA.JPG)
