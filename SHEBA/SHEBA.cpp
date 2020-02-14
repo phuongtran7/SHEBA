@@ -15,7 +15,7 @@ struct RepoInfo {
 };
 
 // We don't need the token here as we only care about public repo information anyway.
-std::vector<std::string> GetAllPublicRepo(web::http::client::http_client& client, const std::string& user) {
+auto GetAllPublicRepo(web::http::client::http_client& client, const std::string& user) -> std::vector<std::string> {
 	using namespace utility;
 	using namespace web;
 	using namespace http;
@@ -25,7 +25,7 @@ std::vector<std::string> GetAllPublicRepo(web::http::client::http_client& client
 	builder.set_path(conversions::to_string_t(fmt::format("/users/{}/repos", user)));
 
 	pplx::task<std::vector<std::string>> request_task = client.request(methods::GET, builder.to_string())
-		.then([&](http_response response)
+		.then([&](const http_response& response)
 			{
 				if (response.status_code() != status_codes::OK)
 				{
@@ -63,7 +63,7 @@ std::vector<std::string> GetAllPublicRepo(web::http::client::http_client& client
 	return std::vector<std::string>{};
 }
 
-std::vector<RepoInfo> BuildDatabase(web::http::client::http_client& client, const std::string& user, const std::string& token, const std::vector<std::string>& input) {
+auto BuildDatabase(web::http::client::http_client& client, const std::string& user, const std::string& token, const std::vector<std::string>& input) -> std::vector<RepoInfo> {
 	using namespace utility;
 	using namespace web;
 	using namespace http;
@@ -97,7 +97,7 @@ std::vector<RepoInfo> BuildDatabase(web::http::client::http_client& client, cons
 		view_request.set_request_uri(view_builder.to_string());
 
 		// Spawn a task to request the view count
-		pplx::task<void>request_view_task = client.request(view_request).then([&](http_response response)
+		pplx::task<void>request_view_task = client.request(view_request).then([&](const http_response& response)
 			{
 				if (response.status_code() != status_codes::OK)
 				{
@@ -116,35 +116,35 @@ std::vector<RepoInfo> BuildDatabase(web::http::client::http_client& client, cons
 					views.insert(std::make_pair(repo, temp));
 				});
 
-		// Store the task into the vector
-		result.push_back(std::move(request_view_task));
+			// Store the task into the vector
+			result.push_back(std::move(request_view_task));
 
-		web::uri_builder clone_builder;
-		clone_builder.set_path(conversions::to_string_t(fmt::format("/repos/{}/{}/traffic/clones", user, repo)));
-		http_request clone_request(methods::GET);
-		clone_request.headers().add(L"Authorization", conversions::to_string_t(formated_token_string));
-		clone_request.set_request_uri(clone_builder.to_string());
+			web::uri_builder clone_builder;
+			clone_builder.set_path(conversions::to_string_t(fmt::format("/repos/{}/{}/traffic/clones", user, repo)));
+			http_request clone_request(methods::GET);
+			clone_request.headers().add(L"Authorization", conversions::to_string_t(formated_token_string));
+			clone_request.set_request_uri(clone_builder.to_string());
 
-		// Spawn another task for the same repo to request the clone count
-		pplx::task<void>request_clone_task = client.request(clone_request).then([&](http_response response)
-			{
-				if (response.status_code() != status_codes::OK)
+			// Spawn another task for the same repo to request the clone count
+			pplx::task<void>request_clone_task = client.request(clone_request).then([&](const http_response& response)
 				{
-					fmt::print("Received response status code from get clone querry: {}.\n", response.status_code());
-					throw;
-				}
+					if (response.status_code() != status_codes::OK)
+					{
+						fmt::print("Received response status code from get clone querry: {}.\n", response.status_code());
+						throw;
+					}
 
-				return response.extract_utf8string();
-			})
-			.then([&](const std::string& json_data)
-				{
-					rapidjson::Document document;
-					document.Parse(json_data.c_str());
-					count temp{ document["count"].GetInt(), document["uniques"].GetInt() };
-					clones.insert(std::make_pair(repo, temp));
-				});
+					return response.extract_utf8string();
+				})
+				.then([&](const std::string& json_data)
+					{
+						rapidjson::Document document;
+						document.Parse(json_data.c_str());
+						count temp{ document["count"].GetInt(), document["uniques"].GetInt() };
+						clones.insert(std::make_pair(repo, temp));
+					});
 
-		result.push_back(std::move(request_clone_task));
+				result.push_back(std::move(request_clone_task));
 	}
 
 	// Wait for all task to complete
@@ -164,7 +164,7 @@ std::vector<RepoInfo> BuildDatabase(web::http::client::http_client& client, cons
 	for (auto& repo : input) {
 		auto view = views.find(repo)->second;
 		auto clone = clones.find(repo)->second;
-		return_val.emplace_back(RepoInfo{repo, view.count, view.unique, clone.count, clone.unique});
+		return_val.emplace_back(RepoInfo{ repo, view.count, view.unique, clone.count, clone.unique });
 	}
 
 	return return_val;
@@ -212,7 +212,7 @@ int main()
 		user = toml::find<std::string>(data, "User");
 		token = toml::find<std::string>(data, "Token");
 	}
-	catch (const std::runtime_error& e) {
+	catch (const std::runtime_error & e) {
 		fmt::print("{}\n", e.what());
 		std::getchar();
 		return 1;
