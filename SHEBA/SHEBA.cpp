@@ -126,32 +126,32 @@ auto BuildDatabase(web::http::client::http_client& client, const std::vector<std
 					views.insert(std::make_pair(repo, temp));
 				});
 
-			// Store the task into the vector
-			result.push_back(std::move(request_view_task));
+		// Store the task into the vector
+		result.push_back(std::move(request_view_task));
 
-			web::uri_builder clone_builder;
-			clone_builder.set_path(conversions::to_string_t(fmt::format("/repos/{}/{}/traffic/clones", user, repo)));
+		web::uri_builder clone_builder;
+		clone_builder.set_path(conversions::to_string_t(fmt::format("/repos/{}/{}/traffic/clones", user, repo)));
 
-			// Spawn another task for the same repo to request the clone count
-			pplx::task<void> request_clone_task = client.request(MakeRequest(clone_builder.to_string())).then([&](const http_response& response)
+		// Spawn another task for the same repo to request the clone count
+		pplx::task<void> request_clone_task = client.request(MakeRequest(clone_builder.to_string())).then([&](const http_response& response)
+			{
+				if (response.status_code() != status_codes::OK)
 				{
-					if (response.status_code() != status_codes::OK)
-					{
-						fmt::print("Received response status code from get clone querry: {}.\n", response.status_code());
-						throw;
-					}
+					fmt::print("Received response status code from get clone querry: {}.\n", response.status_code());
+					throw;
+				}
 
-					return response.extract_utf8string();
-				})
-				.then([&](const std::string& json_data)
-					{
-						rapidjson::Document document;
-						document.Parse(json_data.c_str());
-						count temp{ document["count"].GetInt(), document["uniques"].GetInt() };
-						clones.insert(std::make_pair(repo, temp));
-					});
+				return response.extract_utf8string();
+			})
+			.then([&](const std::string& json_data)
+				{
+					rapidjson::Document document;
+					document.Parse(json_data.c_str());
+					count temp{ document["count"].GetInt(), document["uniques"].GetInt() };
+					clones.insert(std::make_pair(repo, temp));
+				});
 
-				result.push_back(std::move(request_clone_task));
+		result.push_back(std::move(request_clone_task));
 	}
 
 	auto joinTask = Concurrency::when_all(std::begin(result), std::end(result));
