@@ -107,7 +107,7 @@ auto BuildDatabase(web::http::client::http_client& client, const std::vector<std
 		view_builder.set_path(conversions::to_string_t(fmt::format("/repos/{}/{}/traffic/views", user, repo)));
 
 		// Spawn a task to request the view count
-		pplx::task<void>request_view_task = client.request(MakeRequest(view_builder.to_string())).then([&](const http_response& response)
+		pplx::task<void> request_view_task = client.request(MakeRequest(view_builder.to_string())).then([&](const http_response& response)
 			{
 				if (response.status_code() != status_codes::OK)
 				{
@@ -133,7 +133,7 @@ auto BuildDatabase(web::http::client::http_client& client, const std::vector<std
 			clone_builder.set_path(conversions::to_string_t(fmt::format("/repos/{}/{}/traffic/clones", user, repo)));
 
 			// Spawn another task for the same repo to request the clone count
-			pplx::task<void>request_clone_task = client.request(MakeRequest(clone_builder.to_string())).then([&](const http_response& response)
+			pplx::task<void> request_clone_task = client.request(MakeRequest(clone_builder.to_string())).then([&](const http_response& response)
 				{
 					if (response.status_code() != status_codes::OK)
 					{
@@ -154,16 +154,15 @@ auto BuildDatabase(web::http::client::http_client& client, const std::vector<std
 				result.push_back(std::move(request_clone_task));
 	}
 
-	// Wait for all task to complete
-	for (auto& task : result) {
-		try
-		{
-			task.wait();
-		}
-		catch (const std::exception & e)
-		{
-			fmt::print("Error: {}\n", e.what());
-		}
+	auto joinTask = Concurrency::when_all(std::begin(result), std::end(result));
+
+	try
+	{
+		joinTask.wait();
+	}
+	catch (const std::exception & e)
+	{
+		fmt::print("Error: {}\n", e.what());
 	}
 
 	// Create the vector that contain all the information for all the available repos
